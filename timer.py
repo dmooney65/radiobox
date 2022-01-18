@@ -1,4 +1,5 @@
-from threading import Timer
+#import sys
+import threading
 
 
 class InfiniteTimer():
@@ -19,7 +20,8 @@ class InfiniteTimer():
 
     def _start_timer(self):
         if self._should_continue: # Code could have been running when cancel was called.
-            self.thread = Timer(self.seconds, self._handle_target)
+            self.thread = threading.Timer(self.seconds, self._handle_target)
+            self.thread.daemon = True
             self.thread.start()
 
     def start(self):
@@ -33,5 +35,7 @@ class InfiniteTimer():
         if self.thread is not None:
             self._should_continue = False # Just in case thread is running and cancel fails.
             self.thread.cancel()
+            #self.thread.join()
+            #print('thread exiting')
         else:
             print("Timer never started or failed to initialize.")

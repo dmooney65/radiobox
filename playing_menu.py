@@ -1,52 +1,74 @@
 import textwrap
 
-#import threading
 from luma.core.render import canvas
-#from luma.core.virtual import viewport
 from PIL import ImageFont
 
 import controls
 import fonts
 import menu
-#import main
 import music_menu
-from classes import Oled
+import queue_menu
+from display import Oled
 from MPD2_Client import Client
 from timer import InfiniteTimer
-
-#import sys, signal
-
+from state import State
 
 device = Oled().get_device()
 
 client = Client()
-playing = None
-timer = None
-value = 0
-items = [fonts.menu_up, fonts.play_pause, fonts.stop, fonts.skip_next, fonts.skip_previous, fonts.menu]
+state = State()
+
+items = [fonts.menu_up, fonts.play, fonts.stop, fonts.skip_next,
+         fonts.skip_previous, fonts.shuffle_disabled, fonts.playlist_music, fonts.playlist_remove]
 
 font = ImageFont.truetype(fonts.font_default, size=fonts.size_default)
-font_sm = ImageFont.truetype(fonts.font_default, size=10)
+font_sm = ImageFont.truetype(fonts.font_default, size=11)
+font_sm_i = ImageFont.truetype(fonts.font_italic, size=11)
+font_sm_b = ImageFont.truetype(fonts.font_bold, size=11)
+
 icon = ImageFont.truetype(fonts.font_icon, size=fonts.size_default)
 
+
 def tick():
-    global playing
-    playing = client.poll()
-    cb_rotate(value)
+    if not state.pause_timer:
+        global items
+        oldtitle = state.playing.get('title')
+        oldstatus = state.status.get('state')
+        oldshuffle = state.status.get('random')
+        state.playing = client.poll()
+        state.status = client.status()
+        if oldtitle != state.playing.get('title') or oldstatus != state.status.get('state') or oldshuffle != state.status.get('random'):
+            update_icons()
+            controls.reset_ts()
+            #cb_rotate(state.value)
+            draw_menu()
+
+def update_icons():
+    if state.status.get('state') == 'play':
+        items[1] = fonts.pause
+    else:
+        items[1] = fonts.play
+    if state.status.get('random') == '1':
+        items[5] = fonts.shuffle
+    else:
+        items[5] = fonts.shuffle_disabled
 
 def cb_signal_handler(sig, frame):
-    if timer:
-        print("\ntimer exiting gracefully")
-        timer.cancel()
+    if state.timer:
+        print("playing timer exiting gracefully")
+        state.timer.cancel()
+    else:
+        print("no playing timer")
 
-#signal.signal(signal.SIGINT, signal_handler)
+
 def menu_up():
-    timer.cancel()
+    if state.timer:
+        print("playing timer exiting gracefully")
+        state.timer.cancel()
     music_menu.init(1)
 
+
 def menu_operation(index):
-    #if(not client):
-    #    client = mpd.connect()
     if index == 0:
         menu_up()
     elif index == 1:
@@ -54,61 +76,108 @@ def menu_operation(index):
     elif index == 2:
         client.stop()
     elif index == 3:
-        client.next()
+        nextsong()
     elif index == 4:
-        client.previous()
+        prevsong()
+    elif index == 5:
+        if state.status.get('random') == '1':
+            client.random(0)
+        else:
+            client.random(1)
+    elif index == 6:
+        if state.playing:
+            state.timer.cancel()
+            queue_menu.init(0)
+
+
+def nextsong():
+    if state.playing:
+        if state.status.get('nextsong'):
+            client.seek(state.status.get('nextsong'), 0)
+
+
+def prevsong():
+    if state.playing:
+        song = int(state.status.get('song'))
+        if song > 0:
+            client.seek((str(song-1)), 0)
+
 
 def now_playing(draw):
-    if playing:
-        height, wrap = fonts.getHeightAndWrap(font_sm)
+    state.playing = client.poll()
+    state.status = client.status()
+    if state.playing:
+        height, wrap = fonts.getHeightAndWrap(
+            font_sm, format(state.playing.get('title')))
         wrapper = textwrap.TextWrapper(wrap)
-        song = wrapper.wrap(format(playing.get('title')))
-        draw.text((2, 2), "Now Playing: ", font=font_sm, fill="white")
-        artist = playing.get('artist')
+        song = wrapper.wrap(format(state.playing.get('title')))
+        artist = state.playing.get('artist')
         if artist:
             if isinstance(artist, list):
-                draw.text((2, height + 2), artist[0] + " ", font=font_sm, fill="white")
+                draw.text((2, 0), '{},{}'.format(*artist),
+                          font=font_sm_b, fill="white")
             else:
-                draw.text((2, height + 2), artist + " ", font=font_sm, fill="white")
+                draw.text((2, 0), artist + " ", font=font_sm_b, fill="white")
+        album = state.playing.get('album')
+        if album:
+            draw.text((2, height), album + " ", font=font_sm_i, fill="white")
         for i, line in enumerate(song):
-            draw.text((2, (height*2 + 2) + (i * height)), text=line + " ", font=font_sm, fill="white")
+            if i < 2:
+                draw.text((2, (height*2) + (i * height)),
+                          text=line + " ", font=font_sm, fill="white")
     else:
         draw.text((5, 0), "Stopped", fill="white")
 
-def cb_rotate(val):
-    global value
-    value = val
+
+def draw_menu():
     with canvas(device) as draw:
-        menu.draw_menu_horizontal(device, draw, items, value % len(items))
+        menu.draw_menu_horizontal(
+            device, draw, items, state.value % len(items), icon_size=16)
         now_playing(draw)
+    device.show()
+
+def cb_rotate(val):
+    state.set_pause_timer(True)
+    state.set_value(val)
+    draw_menu()
+    state.set_pause_timer(False)
+
 
 def cb_switch(val):
-    global value
-    value = val
-    menu_operation(value % len(items))
+    state.set_value(val)
+    menu_operation(state.value % len(items))
 
-def cb_bt_next(val):
-    client.next()
 
-def cb_bt_prev(val):
-    client.previous()
+def cb_long_press(val):
+    if state.value % len(items) == 7:
+        client.clear()
 
-def cb_bt_play_pause(val):
+
+def cb_bt_next():
+    nextsong()
+
+
+def cb_bt_prev():
+    prevsong()
+
+
+def cb_bt_play_pause():
     client.playPause()
 
-def cb_bt_mute(val):
-    menu_up()
+
+def cb_bt_mute():
+    client.playPause()#menu_up()
+
 
 def init(val):
-    global value
-    global playing
-    global timer
-    value = val
-    playing = client.poll()
-    # Example Usage
-    timer = InfiniteTimer(1, tick)
-    timer.start()
-    with canvas(device) as draw:
-        menu.draw_menu_horizontal(device, draw, items, value)
-        now_playing(draw)
-    controls.init(__import__(__name__), val)
+    state.set_value(val)
+    # client.replayGain('off')
+    state.playing = client.poll()
+    state.status = client.status()
+    update_icons()
+    if state.timer:
+        state.timer.cancel()
+    state.timer = InfiniteTimer(.5, tick)
+    state.timer.start()
+    draw_menu()
+    controls.init(__name__, val)

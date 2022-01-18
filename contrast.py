@@ -5,7 +5,7 @@ import menu
 import fonts
 import system_menu
 import controls
-from classes import Oled
+from display import Oled
 
 device = Oled().get_device()
 #canvas = None
@@ -18,7 +18,7 @@ def cb_rotate(val):
     device.contrast(adj_list[val % len(adj_list)])
 
 def cb_switch(val):
-    system_menu.init(4)
+    system_menu.init(6)
 
 def init(val):
     #print("in contrast")
@@ -26,4 +26,4 @@ def init(val):
     with canvas(device) as draw:
         #draw.rectangle(device.bounding_box, outline="white", fill="black")
         menu.draw_text(draw, 0, 26, "Contrast", font=font)
-    controls.init(__import__(__name__), val)
+    controls.init(__name__, val)

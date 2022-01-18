@@ -1,5 +1,5 @@
 import os
-import math
+from math import ceil, floor
 from PIL import ImageFont
 
 def make_font(name, size):
@@ -25,19 +25,19 @@ skip_previous = chr(0xF04AE) #"󰒮"
 fast_forward = chr(0xF0211)
 rewind = chr(0xF045F)
 
-bluetooth = "󰂯"
-bluetooth_audio = "󰂰"
-bluetooth_connect = "󰂱"
-bluetooth_off = "󰂲"
+bluetooth = chr(0xF00AF) #"󰂯"
+bluetooth_audio = chr(0xF00B0) #"󰂰"
+bluetooth_connect = chr(0xF00B1) #"󰂱"
+bluetooth_off = chr(0xF00B2) #"󰂲"
 
-home = "󰋜"
-menu = "󰍜"
-menu_swap = "󰩤"
-menu_up = "󰍠"
-menu_down = "󰍝"
-menu_right = "󰍟"
-menu_left = "󰍞"
-menu_open = "󰮫"
+home = chr(0xF02DC) #"󰋜"
+menu = chr(0xF035C) #"󰍜"
+menu_swap = chr(0xF0A64) #"󰩤"
+menu_up = chr(0xF0360) #"󰍠"
+menu_down = chr(0xF035D) #"󰍝"
+menu_right = chr(0xF035F) #"󰍟"
+menu_left = chr(0xF035E) #"󰍞"
+menu_open = chr(0xF0BAB) #"󰮫"
 
 radio = chr(0xF0439) #"󰐹"
 radio_off = chr(0xF121C) #"󱈜"
@@ -53,52 +53,45 @@ reload_icon = chr(0xF0453)
 temperature_celsius = chr(0xF0504)
 coolant_temp = chr(0xF03C8)
 
-playlist_play = "󰐑"
-playlist_plus = "󰐒"
-playlist_minus = "󰐐"
-playlist_remove = "󰐓"
-playlist_music = "󰲸"
+playlist_edit = chr(0xF0900)
+playlist_play = chr(0xF0411) #"󰐑"
+playlist_plus = chr(0xF0412) #"󰐒"
+playlist_minus = chr(0xF0410) #"󰐐"
+playlist_remove = chr(0xF0413) #"󰐓"
+playlist_music = chr(0xF0CB8) #"󰲸"
+shuffle = chr(0xF049D)
+shuffle_disabled = chr(0xF049E)
 
-text_search = "󱎸"
-layers_search = "󱈆"
+text_search = chr(0xF13B8) #"󱎸"
+layers_search = chr(0xF1206) #"󱈆"
 
-plus = "󰐕"
-minus = "󰍴"
+plus = chr(0xF0415)# "󰐕"
+minus = chr(0xF0374) #"󰍴"
+lightning = chr(0xF140B)
 
-face_profile = "󰙄"
-face = "󰙃"
-album = "󰀥"
-account_artist = "󰀄"
-account_music = "󰠃"
-file_music = "󰈣"
-folder_music = "󱍙"
-tag = "󰓹"
+face_profile = chr(0xF0644) #"󰙄"
+face = chr(0xF0643) #"󰙃"
+album = chr(0xF0025) #"󰀥"
+account_artist = chr(0xF0004) #"󰀄"
+account_music = chr(0xF0803) #"󰠃"
+file_music = chr(0xF0223) #"󰈣"
+folder_music = chr(0xF1359) #"󱍙"
+tag = chr(0xF04F9) #"󰓹"
 
-volume_off = "󰖁"
-volume_high = "󰕾"
+volume_off = chr(0xF0581) #"󰖁"
+volume_high = chr(0xF057E) #"󰕾"
 
-brightness = "󰃟"
-ip_network = "󰩠"
-wifi = "󰖩"
-access_point = "󰀃"
-access_point_network = "󰀂"
-access_point_network_off = "󰯡"
+brightness = chr(0xF00DF) #"󰃟"
+ip_network = chr(0xF0A60) #"󰩠"
+wifi = chr(0xF05A9) #"󰖩"
+access_point = chr(0xF0003) #"󰀃"
+access_point_network = chr(0xF0002) #"󰀂"
+access_point_network_off = chr(0xF0BE1) #"󰯡"
 
 def getHeightAndWrap(font, text='ABCDEFGHIJKLMNOPQRSTUVWXYZ'):
-    width, height = font.getsize(text)
+    width, height = font.getsize(text + "hy")
 
-    f_width = math.ceil(width/len(text)) 
+    f_width = ceil(width/len(text)) 
     if width > 0:
-        wrap = 162//(f_width)  #usable display width / width per char avg rounding up
+        wrap = floor(160//(f_width))# - 1 #usable display width / width per char avg rounding up
     return (height, wrap)
-
-#text = "Journalist and author Ella Whelan asks if contemporary feminism is - well - dead."
-#font = ImageFont.truetype(font_default, size=10)
-#width, height = font.getsize(text)
-#print(width, height)
-#f_width = width/len(text)
-#wrap = 20 #default value
-#print(f_width)
-#if width > 0:
-#wrap = 162//(f_width) - (width % f_width > 0) #usable display width / width per char avg rounding up
-#print(wrap)

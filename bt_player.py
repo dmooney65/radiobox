@@ -23,34 +23,36 @@
 #  playing
 #
 #     pi@RPi3:~ $ python3 examples/control_media_player.py
+# Battery command for remote 
+# dbus-send --print-reply=literal --system --dest=org.bluez /org/bluez/hci0/dev_FF_FF_80_01_46_7B org.freedesktop.DBus.Properties.Get string:"org.bluez.Battery1" string:"Percentage"
+from time import sleep
 import textwrap
 from luma.core.render import canvas
 from PIL import ImageFont
-
+import dbus
 import bt_menu
 import controls
 import fonts
 import menu
 from bluezero import dbus_tools, media_player
-from classes import Oled
+from display import Oled
+from timer import InfiniteTimer
+from state import State
 
-value = 0
-# Find the mac address of the first media player connected over Bluetooth
-#MAC_ADDR = None
 device = Oled().get_device()
+state = State()
 
-items = [fonts.menu_up, fonts.play_pause, fonts.stop, fonts.fast_forward, fonts.rewind]
+items = [fonts.menu_up, fonts.play, fonts.stop, fonts.fast_forward, fonts.rewind]
 font = ImageFont.truetype(fonts.font_default, size=fonts.size_default)
-font_sm = ImageFont.truetype(fonts.font_default, size=10)
+font_sm = ImageFont.truetype(fonts.font_default, size=11)
 icon = ImageFont.truetype(fonts.font_icon, size=fonts.size_default)
 
 def menu_up():
-    #timer.cancel()
-    bt_menu.init(0)
+    if state.timer:
+        state.timer.cancel()
+    bt_menu.init(1)
 
 def menu_operation(index):
-    #if(not client):
-    #    client = mpd.connect()
     if index == 0:
         menu_up()
     elif index == 1:
@@ -62,11 +64,16 @@ def menu_operation(index):
     elif index == 4:
         rewind()
 
+def update_icons():
+    if state.playing == 'playing':
+        items[1] = fonts.pause
+    else:
+        items[1] = fonts.play
+
 def find_player():
     for dbus_path in dbus_tools.get_managed_objects():
-        #print(dbus_path)
-        if 'player' in dbus_path:   
-            mac_addr = dbus_tools.get_mac_addr_from_dbus_path(dbus_path)
+        if dbus_path.endswith('player0'):
+            mac_addr = dbus_tools.get_device_address_from_dbus_path(dbus_path)
             return mac_addr
 
 def pause():
@@ -74,9 +81,9 @@ def pause():
     if mac_addr:
         mp = media_player.MediaPlayer(mac_addr)
         media_status = mp.status
-        print(media_status)
         if media_status == 'playing':
             mp.pause()
+            state.playing = 'paused'
 
 
 def play_pause():
@@ -84,18 +91,20 @@ def play_pause():
     if mac_addr:
         mp = media_player.MediaPlayer(mac_addr)
         media_status = mp.status
-        print(media_status)
+        #print(media_status)
         if media_status == 'playing':
             mp.pause()
+            state.playing = 'paused'
         else:
             mp.play()
+            state.playing = 'playing'        
 
 def fast_forward():
     mac_addr = find_player()
     if mac_addr:
         mp = media_player.MediaPlayer(mac_addr)
         mp.fast_forward()
-        #sleep(2)
+        sleep(0.2)
         mp.play()
 
 def rewind():
@@ -103,65 +112,76 @@ def rewind():
     if mac_addr:
         mp = media_player.MediaPlayer(mac_addr)
         mp.rewind()
-        #sleep(2)
+        sleep(0.2)
         mp.play()
+
+def cb_signal_handler(sig, frame):
+    if state.timer:
+        print("bt timer exiting gracefully")
+        state.timer.cancel()
+    else:
+        print("no bt timer")
+
 
 def now_playing(draw):
     mac_addr = find_player()
     if mac_addr:
         mp = media_player.MediaPlayer(mac_addr)
-        playing = mp.track
-        #for detail in playing:
-        #    print(f'{detail} : {playing[detail]}')
+        state.playing = mp.status
+        playing = {}
+        try:
+            playing = mp.track
+        except dbus.exceptions.DBusException as dummy:
+            pass
         height, wrap = fonts.getHeightAndWrap(font_sm)
         wrapper = textwrap.TextWrapper(wrap)
         song = wrapper.wrap(format(playing.get('Title')))
-        #album = wrapper.wrap(format(playing.get('Album')))
-        draw.text((2, 2), mp.name + ": ", font=font_sm, fill="white")
+        #draw.text((2, 2), mp.name + ": ", font=font_sm, fill="white")
         artist = playing.get('Artist')
         if artist:
             if isinstance(artist, list):
-                draw.text((2, height + 2), artist[0] + " ", font=font_sm, fill="white")
+                draw.text((2, 2), artist[0] + " ", font=font_sm, fill="white")
             else:
-                draw.text((2, height + 2), artist + " ", font=font_sm, fill="white")
-        #for i, line in enumerate(album):
-        #    draw.text((2, (height*2 + 2) + (i * height)), text=line + " ", font=font_sm, fill="white")
+                draw.text((2, 2), artist + " ", font=font_sm, fill="white")
         for i, line in enumerate(song):
-            draw.text((2, (height*2 + 2) + (i * height)), text=line + " ", font=font_sm, fill="white")
+            draw.text((2, (height + 2) + (i * height)), text=line + " ", font=font_sm, fill="white")
     else:
         draw.text((5, 0), "Stopped", fill="white")
 
 def cb_rotate(val):
-    global value
-    value = val
+    state.set_value(val)
+    draw_menu()
+
+def draw_menu():
+    update_icons()
     with canvas(device) as draw:
-        menu.draw_menu_horizontal(device, draw, items, value % len(items))
+        menu.draw_menu_horizontal(device, draw, items, state.value % len(items))
         now_playing(draw)
 
 def cb_switch(val):
-    global value
-    value = val
-    menu_operation(value % len(items))
+    state.set_value(val)
+    menu_operation(state.value % len(items))
 
-def cb_bt_play_pause(val):
+def cb_bt_play_pause():
     play_pause()
 
-def cb_bt_prev(val):
+def cb_bt_prev():
     rewind()
 
-def cb_bt_next(val):
+def cb_bt_next():
     fast_forward()
 
+def tick():
+    controls.reset_ts()
+    draw_menu()
+
 def init(val):
-    global value
-    #global playing
-    #global timer
-    value = val
-    #playing = client.poll()
-    # Example Usage
-    #timer = InfiniteTimer(1, tick)
-    #timer.start()
+    state.set_value(val)
     with canvas(device) as draw:
-        menu.draw_menu_horizontal(device, draw, items, value)
+        update_icons()
+        menu.draw_menu_horizontal(device, draw, items, state.value)
         now_playing(draw)
-    controls.init(__import__(__name__), val)
+    
+    state.timer = InfiniteTimer(1, tick)
+    state.timer.start()
+    controls.init(__name__, val)

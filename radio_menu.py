@@ -1,35 +1,31 @@
 import os
-#import sys
-import signal
-import subprocess
-import time
+from time import sleep
+from RPi import GPIO
 
 import psutil
 from luma.core.render import canvas
 #from luma.core.virtual import viewport
 from PIL import ImageFont
 
-#import threading
 import controls
+import dab_ensembles
+import fm_menu
 import fonts
 import menu
 import top_menu
-#import alsaaudio as audio
-#import asyncio
-#from threading import Thread
-from classes import Oled
+
 from alsa import Pipe
+from display import Oled
+from MPD2_Client import Client
 
-#import textwrap
-
-
+GPIO_ANTENNA = 13
 device = Oled().get_device()
+client = Client()
 pipe = Pipe()
 
-items = [(fonts.radio, 'DAB Radio'), (fonts.radio_fm,
-                                      'FM Radio'), (fonts.menu_up, 'Back')]
-
-
+items = [(fonts.menu_up, 'Back'), (fonts.radio, 'DAB Radio'), (fonts.radio_fm,
+                                      'FM Radio')]
+ 
 def kill(proc_pid):
     process = psutil.Process(proc_pid)
     for proc in process.children(recursive=True):
@@ -38,45 +34,52 @@ def kill(proc_pid):
 
 
 def menu_operation(index):
-    
-    font = ImageFont.truetype(fonts.font_default, size=fonts.size_default)
+    GPIO.setmode(GPIO.BCM)
+    GPIO.cleanup(GPIO_ANTENNA)
+    GPIO.setup(GPIO_ANTENNA, GPIO.OUT)
+    font = ImageFont.truetype(fonts.font_default, size=12)
     #font_sm = ImageFont.truetype(fonts.font_default, size=10)
     #icon = ImageFont.truetype(fonts.font_icon, size=fonts.size_default)
-    if index == 0:
+    if index == 1:
+        GPIO.output(GPIO_ANTENNA, 1)
+        client.pause()
         with canvas(device) as draw:
             #draw.rectangle(device.bounding_box, outline="white", fill="black")
-            draw.text((2, 20), "DAB Tuning...", font=font, fill="white")
-        playing = True
-        pipe.start()
+            draw.text((5, 10), "DAB: Starting...", font=font, fill="white")
+        sleep(1)
+        os.system('../dabpi/dabpi_ctl -x')
+        sleep(.5)
         os.system('../dabpi/dabpi_ctl -a')
-        os.system('../dabpi/dabpi_ctl -j 17')
-        os.system('../dabpi/dabpi_ctl -i 9')
-        time.sleep(1)
-        #subprocess.run(['../dabpi/dabpi_ctl', '-g'])
-        os.system('../dabpi/dabpi_ctl -f 7')
+        pipe.start()
+        dab_ensembles.init(0)
 
-    elif index == 1:
-        with canvas(device) as draw:
-            draw.text((2, 20), "FM Selected", font=font, fill="white")
     elif index == 2:
+        GPIO.output(GPIO_ANTENNA, 1)
+        client.pause()
+        with canvas(device) as draw:
+            draw.text((5, 10), "FM: Starting...", font=font, fill="white")
+        os.system('../dabpi/dabpi_ctl -x')
+        sleep(.5)
+        os.system('../dabpi/dabpi_ctl -b')
+        pipe.start()
+        fm_menu.init(1)
+
+    elif index == 0:
+        GPIO.output(GPIO_ANTENNA, 0)
         pipe.stop()
         os.system('../dabpi/dabpi_ctl -x')
+        GPIO.cleanup(GPIO_ANTENNA)
         top_menu.init(1)
-
 
 def cb_rotate(val):
     with canvas(device) as draw:
         menu.draw_menu(device, draw, items, val % len(items))
 
-
 def cb_switch(val):
     menu_operation(val % len(items))
 
-
 def init(val):
-    #global client
-    #client = Client()
-    #print("in main")
     with canvas(device) as draw:
         menu.draw_menu(device, draw, items, val)
-    controls.init(__import__(__name__), val)
+    controls.init(__name__, val)
+    

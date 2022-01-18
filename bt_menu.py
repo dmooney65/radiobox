@@ -8,12 +8,11 @@ import top_menu
 from MPD2_Client import Client
 import controls
 import bt_player
-from classes import Oled
+from display import Oled
 device = Oled().get_device()
 client = Client()
 
-items = [(fonts.bluetooth_audio, 'Audio'), (fonts.bluetooth, 'Make Discoverable'),
-         (fonts.menu_up, 'Back')]
+items = [(fonts.menu_up, 'Back'), (fonts.bluetooth_audio, 'Audio'), (fonts.bluetooth, 'Make Discoverable')]
 
 def bt_discover():
     out = os.popen("bluetoothctl discoverable on").readline()
@@ -24,11 +23,10 @@ def menu_operation(index):
     font = ImageFont.truetype(fonts.font_default, size=12)
     #icon = ImageFont.truetype(fonts.font_icon, size=18)
     string = None
-    if index == 0:
-        client.stop()
-        bt_player.init(2)
-        #music_menu.init(0)
-    elif index == 1:
+    if index == 1:
+        client.pause()
+        bt_player.init(1)
+    elif index == 2:
         height_wrap = fonts.getHeightAndWrap(font)
         height = height_wrap[0]
         wrapper = textwrap.TextWrapper(height_wrap[1])
@@ -40,7 +38,7 @@ def menu_operation(index):
                           font=font, fill="white")
         
         #radio_menu.init(0)
-    elif index == 2:
+    elif index == 0:
         top_menu.init(2)
     
 
@@ -57,4 +55,4 @@ def cb_switch(val):
 def init(val):
     with canvas(device) as draw:
         menu.draw_menu(device, draw, items, val)
-    controls.init(__import__(__name__), val)
+    controls.init(__name__, val)
