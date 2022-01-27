@@ -43,8 +43,8 @@ device = Oled().get_device()
 state = State()
 
 items = [fonts.menu_up, fonts.play, fonts.stop, fonts.fast_forward, fonts.rewind]
-font = ImageFont.truetype(fonts.font_default, size=fonts.size_default)
-font_sm = ImageFont.truetype(fonts.font_default, size=11)
+font = ImageFont.truetype(fonts.font_default, size=11)
+font_sm = ImageFont.truetype(fonts.font_default, size=10)
 icon = ImageFont.truetype(fonts.font_icon, size=fonts.size_default)
 
 def menu_up():
@@ -133,16 +133,17 @@ def now_playing(draw):
             playing = mp.track
         except dbus.exceptions.DBusException as dummy:
             pass
-        height, wrap = fonts.getHeightAndWrap(font_sm)
+        text = format(playing.get('Title'))
+        height, wrap = fonts.getHeightAndWrap(font_sm, text)
         wrapper = textwrap.TextWrapper(wrap)
-        song = wrapper.wrap(format(playing.get('Title')))
+        song = wrapper.wrap(format(text))
         #draw.text((2, 2), mp.name + ": ", font=font_sm, fill="white")
         artist = playing.get('Artist')
         if artist:
             if isinstance(artist, list):
-                draw.text((2, 2), artist[0] + " ", font=font_sm, fill="white")
+                draw.text((2, 2), artist[0] + " ", font=font, fill="white")
             else:
-                draw.text((2, 2), artist + " ", font=font_sm, fill="white")
+                draw.text((2, 2), artist + " ", font=font, fill="white")
         for i, line in enumerate(song):
             draw.text((2, (height + 2) + (i * height)), text=line + " ", font=font_sm, fill="white")
     else:

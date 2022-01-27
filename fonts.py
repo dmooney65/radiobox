@@ -12,10 +12,13 @@ font_bold = "LiberationSans-Bold.ttf"
 font_italic = "LiberationSans-Italic.ttf"
 font_icon = font_path = os.path.abspath(os.path.join(
         os.path.dirname(__file__), 'fonts', "MaterialDesignIconsDesktop.ttf"))
-#font_icon = "MaterialDesignIconsDesktop.ttf"
+font_tiny = font_path = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), 'fonts', 'C&C Red Alert [INET].ttf'))
+font_fixed = "LiberationMono-Regular.ttf"
 
 size_default = 14
 
+star = chr(0xF04CE)
 play_pause = chr(0xF040E) #"󰐎"
 play = chr(0xF040A) #"󰐊"
 pause = chr(0xF03E4) #"󰏤"
@@ -59,6 +62,7 @@ playlist_plus = chr(0xF0412) #"󰐒"
 playlist_minus = chr(0xF0410) #"󰐐"
 playlist_remove = chr(0xF0413) #"󰐓"
 playlist_music = chr(0xF0CB8) #"󰲸"
+playlist_star = chr(0xF0DF2)
 shuffle = chr(0xF049D)
 shuffle_disabled = chr(0xF049E)
 
@@ -89,9 +93,9 @@ access_point_network = chr(0xF0002) #"󰀂"
 access_point_network_off = chr(0xF0BE1) #"󰯡"
 
 def getHeightAndWrap(font, text='ABCDEFGHIJKLMNOPQRSTUVWXYZ'):
-    width, height = font.getsize(text + "hy")
+    width, height = font.getsize(text)
 
     f_width = ceil(width/len(text)) 
     if width > 0:
-        wrap = floor(160//(f_width))# - 1 #usable display width / width per char avg rounding up
+        wrap = floor(126//(f_width))# - 1 #usable display width / width per char avg rounding up
     return (height, wrap)

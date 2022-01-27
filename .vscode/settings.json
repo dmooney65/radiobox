@@ -1,0 +1,33 @@
+{
+    "cSpell.words": [
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        "ACFINT",
+        "CMDOFERR",
+        "DACFINT",
+        "DACQINT",
+        "DEVNTINT",
+        "DSPERR",
+        "DSRVINT",
+        "DSRVOVFLINT",
+        "DSRVPCKTINT",
+        "ERRNR",
+        "INTB",
+        "REPOFERR",
+        "RFFE",
+        "RSQINT",
+        "STCINT",
+        "addid",
+        "alsaaudio",
+        "curr",
+        "deleteid",
+        "dicti",
+        "evdev",
+        "lsinfo",
+        "prevsong",
+        "prioid",
+        "spidev"
+    ],
+    "python.linting.enabled": true,
+    "python.pythonPath": "/usr/bin/python3",
+    "python.linting.pylintEnabled": true
+}

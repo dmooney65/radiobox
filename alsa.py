@@ -17,7 +17,6 @@ class Pipe():
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(Pipe, cls).__new__(cls)
-            # Put any initialization here.
         return cls._instance
 
     def __init__(self):
@@ -30,19 +29,18 @@ class Pipe():
             self._arecord_process = None
             self._aplay_process = None
         self._instance = None
-    
+
     def start(self):
         if self._arecord_process is None:
-            #--pcm-buffer-time=399936 --pcm-period-time=99984
-            self._arecord_process = subprocess.Popen(["arecord", "-t", "raw", "-f",FORMAT, "-r", RATE, "-c", CHANNELS,
-                                                        "--buffer-time=399936", "--period-time=99984", "-D", REC_DEVICE],
-                                                        stdout= subprocess.PIPE)
-            self._aplay_process = subprocess.Popen(["aplay", "-f", FORMAT, "-r", RATE, "-c", CHANNELS, 
-                                                        "--buffer-time=399936", "--period-time=99984", "-D", PLAY_DEVICE],
-                                                        stdin=self._arecord_process.stdout, stdout=subprocess.PIPE)
+            self._arecord_process = subprocess.Popen(["arecord", "-t", "raw", "-f", FORMAT, "-r", RATE, "-c", CHANNELS,
+                                                      "--buffer-time=399936", "--period-time=99984", "-D", REC_DEVICE],
+                                                     stdout=subprocess.PIPE)
+            self._aplay_process = subprocess.Popen(["aplay", "-f", FORMAT, "-r", RATE, "-c", CHANNELS,
+                                                    "--buffer-time=399936", "--period-time=99984", "-D", PLAY_DEVICE],
+                                                   stdin=self._arecord_process.stdout, stdout=subprocess.PIPE)
 
     def stop(self):
         self.__del__()
-    
+
     def is_playing(self):
         return self._instance == 1

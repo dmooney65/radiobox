@@ -13,7 +13,8 @@ def signal_handler(sig, frame):
     controls.cb_signal_handler(sig, frame)
     playing_menu.cb_signal_handler(sig, frame)
     queue_menu.cb_signal_handler(sig, frame)
-    bt_player.cb_signal_handler(sig,frame)    
+    bt_player.cb_signal_handler(sig,frame)
+    controls.reset_ts()
     sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)

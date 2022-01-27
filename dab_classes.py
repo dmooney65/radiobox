@@ -55,14 +55,12 @@ class ServiceList():
             service = Service()
             service.service_id = data[pos + 3] << 24 | data[pos + 2] << 16 | data[pos + 1] << 8 | data[pos]
             b_list = utils.get_bitlist(data[pos+4])
-            #print(data[pos+4] & 1)
-            #print(b_list)
             service.prog_type = b_list[7]
             service.srv_link_flag = b_list[1]
             service.local_flag = data[pos + 5] & 0x80
             num_components = data[pos + 5] & 0x0F
             label = []
-            if data[pos + 8] is 0:
+            if data[pos + 8] == 0:
                 self.success = False
                 break
             for l in range(pos+8,pos+8+16):
@@ -90,3 +88,23 @@ class Service():
         self.prog_type = 0
         self.srv_link_flag = 0
         self.local_flag = 0
+
+class SubchanInfo():
+
+    def __init__(self, data):
+        self.service_mode = data[5]
+        self.protection_info = data[6]
+        self.subchan_bitrate = data[8] << 8 | data[7]
+        self.num_cu = data[10] << 8 | data[9]
+        self.cu_address = data[12] << 8 | data[11]
+
+class AudioInfo():
+
+    def __init__(self, data):
+        self.bitrate = data[6] << 8 | data[5]
+        self.samplerate = data[8] << 8 |  data[7]
+        resp9 = utils.get_bitlist(data[9])
+        self.audio_mode = resp9[6] << 1 | resp9[7]
+        self.ps = resp9[4]
+        self.sbr = resp9[5]
+        self.drc_gain = data[10]

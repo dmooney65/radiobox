@@ -1,4 +1,5 @@
 import os
+import subprocess
 from time import sleep
 from RPi import GPIO
 
@@ -8,7 +9,8 @@ from luma.core.render import canvas
 from PIL import ImageFont
 
 import controls
-import dab_ensembles
+#import dab_ensembles
+import dab_options
 import fm_menu
 import fonts
 import menu
@@ -46,12 +48,13 @@ def menu_operation(index):
         with canvas(device) as draw:
             #draw.rectangle(device.bounding_box, outline="white", fill="black")
             draw.text((5, 10), "DAB: Starting...", font=font, fill="white")
-        sleep(1)
-        os.system('../dabpi/dabpi_ctl -x')
+        subprocess.call('../dabpi/dabpi_ctl -x', shell=True)
         sleep(.5)
-        os.system('../dabpi/dabpi_ctl -a')
+        subprocess.call('../dabpi/dabpi_ctl -a', shell=True)
+        #sleep(1)
         pipe.start()
-        dab_ensembles.init(0)
+        sleep(0.1)
+        dab_options.init(1)
 
     elif index == 2:
         GPIO.output(GPIO_ANTENNA, 1)
@@ -62,6 +65,7 @@ def menu_operation(index):
         sleep(.5)
         os.system('../dabpi/dabpi_ctl -b')
         pipe.start()
+        #sleep(0.1)
         fm_menu.init(1)
 
     elif index == 0:
@@ -79,6 +83,7 @@ def cb_switch(val):
     menu_operation(val % len(items))
 
 def init(val):
+    GPIO.setwarnings(False)
     with canvas(device) as draw:
         menu.draw_menu(device, draw, items, val)
     controls.init(__name__, val)

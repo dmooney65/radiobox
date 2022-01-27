@@ -82,8 +82,7 @@ def cb_bt_next(val):
 
 
 def cb_fm_event(event):
-    # sleep(0.05)
-    global fm
+    #global fm
     if fm is not None:
         if fm.rsq_status:
             with canvas(device) as draw:
@@ -97,7 +96,7 @@ def init(val):
     global VALUE
     VALUE = val
     fm.add_listener(cb_fm_event)
-    sleep(.2)
+    sleep(.5)
     fm.tune_freq(9320)
     with canvas(device) as draw:
         menu.draw_menu_horizontal(device, draw, items, val)

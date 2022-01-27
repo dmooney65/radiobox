@@ -1,15 +1,18 @@
 from time import sleep
+from math import floor
+#import string
 from luma.core.render import canvas
 from PIL import ImageFont
-
+import textwrap
 #import encoding
 import controls
 import fonts
 import menu
-import radio_menu
+#import radio_menu
+import dab_options
 from display import Oled
 from radio import DAB
-import dab_menu
+#import dab_menu
 from dab_db import DABDatabase
 
 device = Oled().get_device()
@@ -19,42 +22,45 @@ db = DABDatabase()
 
 
 font = ImageFont.truetype(fonts.font_default, size=12)
-font_sm = ImageFont.truetype(fonts.font_default, size=10)
+font_fixed = ImageFont.truetype(fonts.font_default, size=10)
+#font_fixed = ImageFont.truetype(fonts.font_fixed, size=10)
+font_tiny = ImageFont.truetype(fonts.font_tiny, size=10)
 icon = ImageFont.truetype(fonts.font_icon, size=fonts.size_default)
 
 
 class State:
     value = 0
     dab = None
+    ensembles = []
+    services = []
+    option = None
     items = []
+    station = None
 
-    def __init__(self, value=0, dab=None):
-        self.value = value
-        self.dab = dab
+    def set_station(self, index):
+        self.station = self.items[index]
 
-    def set_value(self, val):
-        self.value = val
-
-    def set_dab(self, dab):
-        self.dab = dab
-    
-    def set_items(self, items):
-        self.items = items
 
 state = State()
 
+
 def menu_up():
-    #global dab
+    if controls.state.timer:
+        controls.state.timer.cancel()
     state.dab.remove_radio_listener()
-    # dab.remove_listener()
-    dab = None
-    radio_menu.init(1)
+    state.dab.remove_listener()
+    state.dab = None
+    state.station = None
+    if state.option == 'favourites':
+        dab_options.init(1)
+    else:
+        dab_options.init(2)
 
 
-def redraw():
-    state.dab.add_listener(cb_dab_event)
-    draw_menu()
-    controls.init(__name__, state.value)
+# def redraw():
+#    state.dab.add_listener(cb_dab_event)
+#    draw_menu()
+#    controls.init(__name__, state.value)
 
 
 def menu_operation(index):
@@ -62,14 +68,70 @@ def menu_operation(index):
     if index == 0:
         menu_up()
     else:
-        state.dab.remove_listener()
-        dab_menu.init(state.items[index][2], state.dab)
+        if state.items[index][0] is fonts.pause:
+            item = state.items[index]
+            state.dab.stop_digital_service(item[2], item[3])
+            state.items[index] = ('', item[1], item[2], item[3], item[4])
+            draw_menu()
+        else:
+            for i in range(len(state.items)):
+                if state.items[i][0] is fonts.pause:
+                    item = state.items[i]
+                    state.items[i] = ('', item[1], item[2], item[3], item[4])
+            if state.station is not None:
+                if state.station[4] == state.items[index][4]:
+                    print('same ensemble')
+                    state.dab.start_digital_service(
+                        state.items[index][2], state.items[index][3])
+                    sleep(0.1)
+                else:
+                    print('different ensemble')
+                    state.dab.tune_frequency(state.items[index][4])
+                    sleep(0.1)
+            else:
+                print('first run')
+                state.dab.tune_frequency(state.items[index][4])
+            state.set_station(index)
+            print(state.station)
+            state.items[index] = (fonts.pause, state.station[1],
+                                  state.station[2], state.station[3], state.station[4])
+            draw_menu()
 
 
-def draw_menu():
+def draw_menu(data=False):
     with canvas(device) as draw:
-        menu.draw_menu(device, draw, state.items, state.value %
-                       len(state.items), font_size=12, icon_size=14)
+        if state.dab.service_data is not None and state.dab.audio_info is not None and data is True:
+            controls.reset_ts()
+            height_wrap = fonts.getHeightAndWrap(
+                font_fixed, state.dab.service_data)
+            height = height_wrap[0]
+            wrapper = textwrap.TextWrapper(height_wrap[1])
+            string = wrapper.wrap(state.dab.service_data)
+            audio_info = state.dab.audio_info
+            if audio_info.sbr > 0:
+                dab_state = 'DAB+ '
+            else:
+                dab_state = 'DAB '
+            if audio_info.audio_mode == 1:
+                if audio_info.ps > 0:
+                    mode = 'Stereo '
+                else:
+                    mode = 'Mono '
+            elif audio_info.audio_mode == 2:
+                mode = 'Stereo '
+            else:
+                mode = 'Joint Stereo '
+
+            draw.text((1, 56), dab_state + mode + format(audio_info.bitrate) + 'k/s ' +
+                      format(floor(audio_info.samplerate/1000)) + 'kHz ', font=font_tiny, fill="white")
+            for i, line in enumerate(string):
+                if i < 5:
+                    draw.text((2, 3 + (i * (height-1))), text=format(line).strip(),
+                              font=font_fixed, fill="white")
+
+        else:
+            menu.draw_menu(device, draw, state.items, state.value %
+                           len(state.items), font_size=11, icon_size=11)
 
 
 def now_playing(draw):
@@ -77,54 +139,84 @@ def now_playing(draw):
 
 
 def cb_rotate(val):
-    #global VALUE
-    #VALUE = val
-    state.set_value(val)
+    state.dab.service_data = None
+    state.value = val
     draw_menu()
 
 
 def cb_switch(val):
-    #global VALUE
-    #VALUE = val
-    state.set_value(val)
+    state.dab.service_data = None
+    state.value = val
     menu_operation(state.value % len(state.items))
 
 
+def cb_long_press(val):
+    value = val % len(state.items) - 1
+    print(state.services[value])
+    if state.option == 'all':
+        rows = db.get_favourite(state.services[value])
+        if len(rows) == 0:
+            db.add_favourite(state.services[value])
+        item = state.items[value + 1]
+        print(item)
+        state.items[value + 1] = (fonts.star, item[1],
+                                  item[2], item[3], item[4])
+        draw_menu()
+    elif state.option == 'favourites':
+        db.remove_favourite(state.services[value])
+        create_items()
+
+
 def cb_dab_event(event):
+    # print(event)
+    #print('event ', state.station)
     if state.dab is not None:
-        #global items
-        if event == 'ensembles':
+        if event == 'status':
+            if state.option != 'rescan':
+                state.dab.get_ensemble_info()
+        elif event == 'ensemble':
+            if state.option != 'rescan':
+                state.dab.start_digital_service(
+                    state.station[2], state.station[3])
+                sleep(0.1)
+        elif event == 'service_start':
+            sleep(0.5)
+            state.dab.get_audio_info()
+        elif event == 'ensembles':
+            state.option = 'all'
             create_items()
             draw_menu()
+        elif event == 'service_data':
+            # print(state.dab.service_data)
+            sleep(2)
+            draw_menu(True)
 
 
 def create_items():
-    state.dab.add_listener(cb_dab_event)
-    rows = db.get_ensembles()
-    global items
-    items = []
-    if len(rows) == 0:
+    ensembles = db.get_ensembles()
+    if len(ensembles) == 0 or state.option == 'rescan':
+        state.option = 'rescan'
         state.dab.scan()
     else:
+        state.ensembles = ensembles
+        state.items = []
         state.items.append((fonts.menu_up, 'Back'))
-        for row in rows:
-            state.items.append(('', row[0], row[1]))
-        # dab.scan()
-    draw_menu()
+        if state.option == 'favourites':
+            state.services = db.get_favourites()
+        else:
+            state.services = db.get_services()
+        for service in state.services:
+            state.items.append(
+                ('', service[7], service[0], service[1], service[8]))
+        draw_menu()
 
 
-def init(val):
-    #global dab
-    #dab = DAB()
-    state.set_dab(DAB())
-    state.set_value(val)
-    #global VALUE
-    #VALUE = val
-    #state
-    # dab.add_radio_listener()
+def init(option, val):
+    state.dab = DAB()
+    state.value = val
+    state.option = option
     state.dab.add_listener(cb_dab_event)
     sleep(.1)
-    # dab.tune_frequency(9)
     with canvas(device) as draw:
         now_playing(draw)
     create_items()

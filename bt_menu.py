@@ -16,7 +16,7 @@ items = [(fonts.menu_up, 'Back'), (fonts.bluetooth_audio, 'Audio'), (fonts.bluet
 
 def bt_discover():
     out = os.popen("bluetoothctl discoverable on").readline()
-    return out  # (temp.replace("temp=","").replace("'C", "").replace("\n",""))
+    return out 
 
 
 def menu_operation(index):
@@ -27,10 +27,11 @@ def menu_operation(index):
         client.pause()
         bt_player.init(1)
     elif index == 2:
-        height_wrap = fonts.getHeightAndWrap(font)
+        text = bt_discover()
+        height_wrap = fonts.getHeightAndWrap(font, text)
         height = height_wrap[0]
         wrapper = textwrap.TextWrapper(height_wrap[1])
-        string = wrapper.wrap(bt_discover())
+        string = wrapper.wrap(text)
         with canvas(device) as draw:
             draw.rectangle(device.bounding_box, outline="white", fill="black")
             for i, line in enumerate(string):
