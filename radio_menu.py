@@ -48,9 +48,9 @@ def menu_operation(index):
         with canvas(device) as draw:
             #draw.rectangle(device.bounding_box, outline="white", fill="black")
             draw.text((5, 10), "DAB: Starting...", font=font, fill="white")
-        subprocess.call('../dabpi/dabpi_ctl -x', shell=True)
+        os.system('../dabpi/dabpi_ctl -x')#, shell=True)
         sleep(.5)
-        subprocess.call('../dabpi/dabpi_ctl -a', shell=True)
+        os.system('../dabpi/dabpi_ctl -a')#, shell=True)
         #sleep(1)
         pipe.start()
         sleep(0.1)

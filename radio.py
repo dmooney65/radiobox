@@ -42,7 +42,7 @@ class Radio():
         print('init radio')
         self.spi = spidev.SpiDev()
         self.spi.open(bus, device)
-        self.spi.max_speed_hz = 6000000
+        self.spi.max_speed_hz = 4000000
         self.spi.mode = 0b00
         self.spi.bits_per_word = 8
         GPIO.setmode(GPIO.BCM)
@@ -319,6 +319,7 @@ class DAB():
         self.service_list = None
         db = DABDatabase()
         db.clear_database()
+        sleep(1)
         for i in range(len(self.frequencies)):
             self.tune_frequency(i)
             # sleep(0.1)
@@ -364,6 +365,7 @@ class DAB():
         self.radio.listener = None
 
     def set_frequency_list(self, freq_list=constants.UK_CHANNELS):
+        self.frequencies = []
         self.command = constants.DAB_SET_FREQ_LIST
         for i in freq_list:
             self.frequencies.append(constants.DAB_CHANNELS.get(i))

@@ -21,7 +21,7 @@ class InfiniteTimer():
     def _start_timer(self):
         if self._should_continue: # Code could have been running when cancel was called.
             self.thread = threading.Timer(self.seconds, self._handle_target)
-            self.thread.daemon = True
+            #self.thread.daemon = True
             self.thread.start()
 
     def start(self):

@@ -45,9 +45,6 @@ def cb_switch(val):
             song = queue[state.value -1]
             client.seek(song.get('pos'), 0)
 
-def cb_long_press(val):
-    menu_operation(0)
-
 def cb_signal_handler(sig, frame):
     if state.timer:
         print("queue timer exiting gracefully")

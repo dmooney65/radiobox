@@ -73,11 +73,11 @@ def cb_switch(val):
     menu_operation(val % len(items))
 
 
-def cb_bt_prev(val):
+def cb_bt_prev():
     fm.seek_down()
 
 
-def cb_bt_next(val):
+def cb_bt_next():
     fm.seek_up()
 
 

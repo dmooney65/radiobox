@@ -41,9 +41,6 @@ def cb_rotate(val):
 def cb_switch(val):
     menu_operation(val % len(items))
 
-def cb_long_press(val):
-    menu_operation(0)
-
 def init(val, p, albs, artist = None):
     global items
     global albums

@@ -151,6 +151,9 @@ def cb_switch(val):
 def cb_long_press(val):
     if state.value % len(items) == 7:
         client.clear()
+    else:
+        print('calling menu up')
+        menu_up()
 
 
 def cb_bt_next():
@@ -163,10 +166,6 @@ def cb_bt_prev():
 
 def cb_bt_play_pause():
     client.playPause()
-
-
-def cb_bt_mute():
-    client.playPause()#menu_up()
 
 
 def init(val):

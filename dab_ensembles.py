@@ -8,11 +8,9 @@ import textwrap
 import controls
 import fonts
 import menu
-#import radio_menu
 import dab_options
 from display import Oled
 from radio import DAB
-#import dab_menu
 from dab_db import DABDatabase
 
 device = Oled().get_device()
@@ -57,12 +55,6 @@ def menu_up():
         dab_options.init(2)
 
 
-# def redraw():
-#    state.dab.add_listener(cb_dab_event)
-#    draw_menu()
-#    controls.init(__name__, state.value)
-
-
 def menu_operation(index):
     #size = len(items)
     if index == 0:
@@ -80,16 +72,13 @@ def menu_operation(index):
                     state.items[i] = ('', item[1], item[2], item[3], item[4])
             if state.station is not None:
                 if state.station[4] == state.items[index][4]:
-                    print('same ensemble')
                     state.dab.start_digital_service(
                         state.items[index][2], state.items[index][3])
                     sleep(0.1)
                 else:
-                    print('different ensemble')
                     state.dab.tune_frequency(state.items[index][4])
                     sleep(0.1)
             else:
-                print('first run')
                 state.dab.tune_frequency(state.items[index][4])
             state.set_station(index)
             print(state.station)
@@ -128,7 +117,6 @@ def draw_menu(data=False):
                 if i < 5:
                     draw.text((2, 3 + (i * (height-1))), text=format(line).strip(),
                               font=font_fixed, fill="white")
-
         else:
             menu.draw_menu(device, draw, state.items, state.value %
                            len(state.items), font_size=11, icon_size=11)
@@ -151,25 +139,26 @@ def cb_switch(val):
 
 
 def cb_long_press(val):
-    value = val % len(state.items) - 1
-    print(state.services[value])
-    if state.option == 'all':
-        rows = db.get_favourite(state.services[value])
-        if len(rows) == 0:
-            db.add_favourite(state.services[value])
-        item = state.items[value + 1]
-        print(item)
-        state.items[value + 1] = (fonts.star, item[1],
-                                  item[2], item[3], item[4])
-        draw_menu()
-    elif state.option == 'favourites':
-        db.remove_favourite(state.services[value])
-        create_items()
+    if val % len(state.items) != 0:
+        value = val % len(state.items) - 1
+        if state.option == 'all':
+            item = state.items[value + 1]
+            rows = db.get_favourite(state.services[value])
+            if len(rows) == 0:
+                db.add_favourite(state.services[value])
+                state.items[value + 1] = (fonts.star, item[1],
+                                          item[2], item[3], item[4])
+            else:
+                db.remove_favourite(state.services[value])
+            create_items()
+        elif state.option == 'favourites':
+            db.remove_favourite(state.services[value])
+            create_items()
+    else:
+        menu_up()
 
 
 def cb_dab_event(event):
-    # print(event)
-    #print('event ', state.station)
     if state.dab is not None:
         if event == 'status':
             if state.option != 'rescan':
@@ -187,7 +176,6 @@ def cb_dab_event(event):
             create_items()
             draw_menu()
         elif event == 'service_data':
-            # print(state.dab.service_data)
             sleep(2)
             draw_menu(True)
 
@@ -203,11 +191,18 @@ def create_items():
         state.items.append((fonts.menu_up, 'Back'))
         if state.option == 'favourites':
             state.services = db.get_favourites()
+            for service in state.services:
+                state.items.append(
+                    ('', service[7], service[0], service[1], service[8]))
         else:
             state.services = db.get_services()
-        for service in state.services:
-            state.items.append(
-                ('', service[7], service[0], service[1], service[8]))
+            for service in state.services:
+                fav = db.get_favourite(service)
+                icon = ''
+                if len(fav) > 0:
+                    icon = fonts.star
+                state.items.append(
+                    (icon, service[7], service[0], service[1], service[8]))
         draw_menu()
 
 

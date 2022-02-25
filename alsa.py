@@ -5,8 +5,8 @@ CHANNELS = '2'
 RATE = '48000'
 FORMAT = 'S32_LE'
 REC_DEVICE = 'hw:0,1'
-#PLAY_DEVICE = 'hw:0,0'
-PLAY_DEVICE = 'camilladsp'
+PLAY_DEVICE = 'hw:0,0'
+#PLAY_DEVICE = 'camilladsp'
 
 
 class Pipe():

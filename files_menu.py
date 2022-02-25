@@ -5,7 +5,6 @@ import fonts
 import menu
 import controls
 import music_menu
-#import build_indexlist
 from MPD2_Client import Client
 from display import Oled
 
@@ -48,9 +47,6 @@ def cb_rotate(val):
 
 def cb_switch(val):
     menu_operation(val % len(items))
-
-def cb_long_press(val):
-    menu_operation(0)
     
 def open(val):
     cb_rotate(val)

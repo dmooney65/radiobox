@@ -65,7 +65,7 @@ def menu_operation(index):
             draw.rectangle(device.bounding_box, outline="white", fill="black")
             draw.text((2, 26), "Reloading...", font=font, fill="white")
         sleep(1)
-        os.system('sudo systemctl restart radiobox_python')
+        os.system('sudo systemctl restart stalk_control.service')
     elif index == 5:
         with canvas(device) as draw:
             draw.rectangle(device.bounding_box, outline="white", fill="black")

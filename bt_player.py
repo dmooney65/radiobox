@@ -71,10 +71,13 @@ def update_icons():
         items[1] = fonts.play
 
 def find_player():
-    for dbus_path in dbus_tools.get_managed_objects():
-        if dbus_path.endswith('player0'):
-            mac_addr = dbus_tools.get_device_address_from_dbus_path(dbus_path)
-            return mac_addr
+    try:
+        for dbus_path in dbus_tools.get_managed_objects():
+            if dbus_path.endswith('player0'):
+                mac_addr = dbus_tools.get_device_address_from_dbus_path(dbus_path)
+                return mac_addr
+    except Exception:
+        print(Exception)
 
 def pause():
     mac_addr = find_player()
@@ -131,12 +134,19 @@ def now_playing(draw):
         playing = {}
         try:
             playing = mp.track
-        except dbus.exceptions.DBusException as dummy:
+        except dbus.exceptions.DBusException as e:
+            print(e)
             pass
         text = format(playing.get('Title'))
-        height, wrap = fonts.getHeightAndWrap(font_sm, text)
-        wrapper = textwrap.TextWrapper(wrap)
-        song = wrapper.wrap(format(text))
+        #print(text)
+        
+        if len(text) > 0:
+            height, wrap = fonts.getHeightAndWrap(font_sm, text)
+            wrapper = textwrap.TextWrapper(wrap)
+            song = wrapper.wrap(format(text))
+        else:
+            song = ' '
+            height, wrap = fonts.getHeightAndWrap(font_sm, 'ABC')
         #draw.text((2, 2), mp.name + ": ", font=font_sm, fill="white")
         artist = playing.get('Artist')
         if artist:
@@ -183,6 +193,6 @@ def init(val):
         menu.draw_menu_horizontal(device, draw, items, state.value)
         now_playing(draw)
     
-    state.timer = InfiniteTimer(1, tick)
+    state.timer = InfiniteTimer(0.5, tick)
     state.timer.start()
     controls.init(__name__, val)
